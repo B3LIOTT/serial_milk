@@ -1,3 +1,4 @@
+<?php
 class access_log
 {
     public $log_file;
@@ -18,3 +19,4 @@ class access_log
         return file_get_contents($this->log_file);
     }
 }
+?>

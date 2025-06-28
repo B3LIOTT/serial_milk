@@ -1,5 +1,4 @@
 <?php
-// serialize_class_interactive.php
 
 if ($argc < 3) {
     echo "Usage: php serial_milk.php <php file> <class name> [arg1 arg2 ...]\n";
@@ -42,17 +41,42 @@ try {
             }
             echo ": ";
             
-            $handle = fopen("php://stdin","r");
+            $handle = fopen("php://stdin", "r");
             $line = trim(fgets($handle));
-            fclose($handle);
 
             if ($line === "" && $default !== null) {
-                $args[] = $default;
+                $value = $default;
             } else {
-                $args[] = $line;
+                // Ask user for the type
+                echo "Choose type for parameter \${$paramName} (int, string, bool) [string]: ";
+                $typeLine = trim(fgets($handle));
+                if ($typeLine === "") {
+                    $typeLine = "string"; // default type
+                }
+
+                // Convert value according to chosen type
+                switch (strtolower($typeLine)) {
+                    case 'int':
+                        $value = (int)$line;
+                        break;
+                    case 'bool':
+                        $value = filter_var($line, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                        if ($value === null) {
+                            echo "Invalid boolean input, defaulting to false.\n";
+                            $value = false;
+                        }
+                        break;
+                    case 'string':
+                    default:
+                        $value = $line;
+                        break;
+                }
             }
+            fclose($handle);
+            $args[] = $value;
         }
     }
+
 
     // Instantiate with final args
     $obj = $refClass->newInstanceArgs($args);

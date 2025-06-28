@@ -17,6 +17,8 @@ class Class:
                 s += f's:{val_len}:"{val}";'
             elif typ == 'i':
                 s += f'i:{val};'
+            elif typ == 'b':
+                s += f'b:{int(val)};'
             else:
                 raise NotImplementedError(f"Type {typ} not implemented")
         s += '}'
@@ -99,7 +101,8 @@ def extract_php_class(filepath):
                     print(f"\nDefining ${var}:")
                     print("  1. String")
                     print("  2. Integer")
-                    choice = input("Choose type (1-2): ").strip()
+                    print("  3. Boolean")
+                    choice = input("Choose type (1-3): ").strip()
                     
                     if choice == '1':
                         value = input(f"Value for ${var} (string): ")
@@ -112,8 +115,18 @@ def extract_php_class(filepath):
                             break
                         except ValueError:
                             print("Error: Please enter a valid integer.")
+                    elif choice == '3':
+                        bool_str = input(f"Value for ${var} (boolean: true/false): ").strip().lower()
+                        if bool_str in ['true', '1', 'yes', 'y']:
+                            struct.pub_vars[var] = (True, 'b')
+                            break
+                        elif bool_str in ['false', '0', 'no', 'n']:
+                            struct.pub_vars[var] = (False, 'b')
+                            break
+                        else:
+                            print("Error: Please enter 'true' or 'false'.")
                     else:
-                        print("Invalid choice. Please choose 1 or 2.")
+                        print("Invalid choice. Please choose 1, 2 or 3.")
         print()
     
     return struct

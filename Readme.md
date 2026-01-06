@@ -11,9 +11,3 @@ Params:
 - php file is the file containing the class you want to serialize
 - class name is the class name (no way)
 - [arg1, ...] are needed args, it is optionnal (if some args are missing this program will let you define them)
-
-
-A python version is available for those who can't use php:
-```bash
-Usage: serial_milk.py <php file>
-```

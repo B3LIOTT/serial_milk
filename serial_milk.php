@@ -1,100 +1,70 @@
 <?php
 
 if ($argc < 3) {
-    echo "Usage: php serial_milk.php <php file> <class name> [arg1 arg2 ...]\n";
+    echo "Usage: php serial_god_mode.php <php file> <class name>\n";
     exit(1);
 }
 
 $file = $argv[1];
 $className = $argv[2];
-$args = array_slice($argv, 3);
 
 if (!file_exists($file)) {
-    echo "Error: file '$file' not found.\n";
-    exit(1);
+    die("Erreur: Fichier '$file' introuvable.\n");
 }
 
 require_once $file;
 
 if (!class_exists($className)) {
-    echo "Error: class '$className' not found in the file.\n";
-    exit(1);
+    die("Erreur: Classe '$className' introuvable.\n");
 }
 
 try {
     $refClass = new ReflectionClass($className);
-    $constructor = $refClass->getConstructor();
+    
+    // Creating object without the constructor to bypass constructor restrictions
+    $object = $refClass->newInstanceWithoutConstructor();
+    
+    // Get props
+    $properties = $refClass->getProperties();
 
-    $params = $constructor ? $constructor->getParameters() : [];
-    $argsNeeded = count($params);
+    echo "--- Configuration des propriétés pour '$className' ---\n";
 
-    // Ask for missing parameters
-    if (count($args) < $argsNeeded) {
-        for ($i = count($args); $i < $argsNeeded; $i++) {
-            $param = $params[$i];
-            $paramName = $param->getName();
-            $default = $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
+    foreach ($properties as $prop) {
+        // Set property to accissible
+        $prop->setAccessible(true);
+        
+        $name = $prop->getName();
+        
+        // Visibility type detection
+        $visibility = 'public';
+        if ($prop->isProtected()) $visibility = 'protected';
+        if ($prop->isPrivate()) $visibility = 'private';
 
-            echo "Enter value for parameter \${$paramName}";
-            if ($default !== null) {
-                echo " [default = {$default}]";
-            }
-            echo ": ";
-            
-            $handle = fopen("php://stdin", "r");
-            $line = trim(fgets($handle));
+        $currentValue = $prop->getValue($object); // Default class value
+        $displayDefault = is_scalar($currentValue) ? $currentValue : var_export($currentValue, true);
 
-            if ($line === "" && $default !== null) {
-                $value = $default;
-            } else {
-                // Ask user for the type
-                echo "Choose type for parameter \${$paramName} (int, string, bool) [string]: ";
-                $typeLine = trim(fgets($handle));
-                if ($typeLine === "") {
-                    $typeLine = "string"; // default type
-                }
+        echo "[$visibility] \$$name (Défaut: $displayDefault) : ";
+        
+        $handle = fopen("php://stdin", "r");
+        $input = trim(fgets($handle));
+        fclose($handle);
 
-                // Convert value according to chosen type
-                switch (strtolower($typeLine)) {
-                    case 'int':
-                        $value = (int)$line;
-                        break;
-                    case 'bool':
-                        $value = filter_var($line, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-                        if ($value === null) {
-                            echo "Invalid boolean input, defaulting to false.\n";
-                            $value = false;
-                        }
-                        break;
-                    case 'string':
-                    default:
-                        $value = $line;
-                        break;
-                }
-            }
-            fclose($handle);
-            $args[] = $value;
+        // User input or default
+        if ($input !== "") {
+            $prop->setValue($object, $input);
         }
     }
 
+    echo "\n--- Résultat ---\n";
+    
+    $serialized = serialize($object);
+    
+    echo "Raw:\n" . $serialized . "\n\n";
+    
+    echo "URL Encoded:\n" . urlencode($serialized) . "\n\n";
+    
+    echo "Base64:\n" . base64_encode($serialized) . "\n";
 
-    // Instantiate with final args
-    $obj = $refClass->newInstanceArgs($args);
-
-    echo "[Plain]\n";
-    echo serialize($obj) . "\n\n";
-    echo "[Base64]\n";
-    echo base64_encode(serialize($obj)) . "\n";
-
-} catch (ReflectionException $e) {
-    echo "Reflection error: ", $e->getMessage(), "\n";
-    exit(1);
-} catch (ArgumentCountError $e) {
-    echo "Error: incorrect number of arguments for the constructor.\n";
-    exit(1);
 } catch (Exception $e) {
-    echo "General error: ", $e->getMessage(), "\n";
-    exit(1);
+    echo "Erreur: " . $e->getMessage() . "\n";
 }
-
-?>
